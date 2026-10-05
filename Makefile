@@ -19,7 +19,11 @@ refresh-map:
 refresh-check:
 	$(PYTHON) tools/refresh_map.py --dry-run
 
-test: test-vim test-nvim
+# Editors are independent, so run both suites concurrently and wait for both.
+test:
+	@$(MAKE) -s test-vim & v=$$!; $(MAKE) -s test-nvim & n=$$!; \
+	wait $$v; rv=$$?; wait $$n; rn=$$?; \
+	if [ $$rv -ne 0 ] || [ $$rn -ne 0 ]; then exit 1; fi
 
 test-vim: $(THEMIS_BIN)
 	THEMIS_VIM=vim THEMIS_ARGS="-e -s" $(THEMIS_BIN) test/

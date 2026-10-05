@@ -30,6 +30,11 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
+      - name: Cache verified dataset
+        uses: actions/cache@v4
+        with:
+          path: tools/.cache
+          key: emoji-data-${{ hashFiles('tools/generate_map.py') }}
       - uses: rhysd/action-setup-vim@v1
       - name: Regenerate and diff the committed map
         run: make generate-check

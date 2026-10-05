@@ -13,6 +13,9 @@ import sys
 import urllib.request
 from pathlib import Path
 
+TOOLS_DIR = Path(__file__).resolve().parent
+CACHE_DIR = TOOLS_DIR / ".cache"
+
 SOURCE_TAG = "v16.0.0"
 SOURCE_COMMIT = "2771d0b1b3af25c069086e68e38f901c3dda8bdf"
 SOURCE_SHA256 = "1d602e65be88772bf8cc368ce16b855d719eeddbafe128d471b80203f494d29f"
@@ -145,17 +148,32 @@ def render_vim(mapping, meta=None):
 
 
 def load_dataset(input_path=None):
-    """Load entries from a local JSON file, or fetch and verify the pin."""
+    """Load entries from a local JSON file, a verified cache, or the pin.
+
+    The cache is keyed by SOURCE_COMMIT, so bumping the pin misses it and
+    forces a fresh verified download.
+    """
     if input_path is not None:
-        raw = Path(input_path).read_bytes()
-    else:
-        with urllib.request.urlopen(SOURCE_URL) as response:
-            raw = response.read()
-        digest = hashlib.sha256(raw).hexdigest()
-        if digest != SOURCE_SHA256:
-            raise SystemExit(
-                "sha256 mismatch: expected %s, got %s" % (SOURCE_SHA256, digest)
-            )
+        return json.loads(Path(input_path).read_bytes().decode("utf-8"))
+
+    cache_path = CACHE_DIR / ("emoji-%s.json" % SOURCE_COMMIT)
+    if cache_path.exists():
+        raw = cache_path.read_bytes()
+        if hashlib.sha256(raw).hexdigest() == SOURCE_SHA256:
+            return json.loads(raw.decode("utf-8"))
+
+    with urllib.request.urlopen(SOURCE_URL) as response:
+        raw = response.read()
+    digest = hashlib.sha256(raw).hexdigest()
+    if digest != SOURCE_SHA256:
+        raise SystemExit(
+            "sha256 mismatch: expected %s, got %s" % (SOURCE_SHA256, digest)
+        )
+    try:
+        CACHE_DIR.mkdir(parents=True, exist_ok=True)
+        cache_path.write_bytes(raw)
+    except OSError:
+        pass  # the cache is an optimization; a read-only checkout still works
     return json.loads(raw.decode("utf-8"))
 
 
