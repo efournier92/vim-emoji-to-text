@@ -206,3 +206,49 @@ function! s:suite.api_convert_function() abort
   call emoji_to_text#convert()
   call s:assert.equals(getline(1), ':grinning:')
 endfunction
+
+" 23. ASCII fast path: a line of keycap starter characters with no non-ASCII
+" byte must fall through the per-line skip untouched.
+function! s:suite.case_23_ascii_fast_path_untouched() abort
+  let l:line = '1 # * + - = abc ABC 0123456789'
+  call s:set_lines([l:line])
+  EmojiToText
+  call s:assert.equals(getline(1), l:line)
+endfunction
+
+" 24. A 3-byte emoji and a keycap sharing an ASCII base with combining marks
+" must not be dropped by the non-ASCII prefilter when adjacent to text.
+function! s:suite.case_24_multibyte_adjacent_text() abort
+  call s:set_lines(['a❤️b', 'x1️⃣y'])
+  EmojiToText
+  call s:assert.equals(getline(1), 'a:heart:b')
+  call s:assert.equals(getline(2), 'x:one:y')
+endfunction
+
+" 25. Idempotency over a mixed buffer: ASCII lines, single emoji, and a
+" multi-emoji line; a second run is a no-op.
+function! s:suite.case_25_idempotency_mixed_buffer() abort
+  call s:set_lines(['😀 and text', 'plain ascii', '👨👩👧🇺🇸'])
+  EmojiToText
+  let l:once = getline(1, '$')
+  EmojiToText
+  call s:assert.equals(getline(1, '$'), l:once)
+  call s:assert.equals(l:once[0], ':grinning: and text')
+  call s:assert.equals(l:once[1], 'plain ascii')
+  call s:assert.equals(l:once[2], ':man::woman::girl::flag-us:')
+endfunction
+
+" 26. Whole-buffer setline must remain a single undo step across multiple
+" lines, not just the single-line case_17.
+function! s:suite.case_26_undo_multiline_single_step() abort
+  let l:original = ['😀 first', 'plain ascii', '👨‍👩‍👧 last']
+  let l:file = tempname()
+  call writefile(l:original, l:file)
+  execute 'silent edit!' fnameescape(l:file)
+  EmojiToText
+  call s:assert.equals(getline(1), ':grinning: first')
+  call s:assert.equals(getline(3), ':man-woman-girl: last')
+  silent undo
+  call s:assert.equals(getline(1, '$'), l:original)
+  call delete(l:file)
+endfunction
