@@ -1,0 +1,63 @@
+*emoji-to-text.txt*  Convert emoji to Slack-style shortcodes  *emoji-to-text*
+
+==============================================================================
+CONTENTS                                            *emoji-to-text-contents*
+
+    1. Introduction ................ |emoji-to-text-introduction|
+    2. Commands .................... |emoji-to-text-commands|
+    3. Mappings .................... |emoji-to-text-mappings|
+    4. Limits ...................... |emoji-to-text-limits|
+    5. License ..................... |emoji-to-text-license|
+
+==============================================================================
+1. INTRODUCTION                                 *emoji-to-text-introduction*
+
+EmojiToText replaces fully-qualified emoji in the current buffer with
+colon-wrapped lowercase shortcodes, for example `:grinning:`. The output
+matches Slack's shortcode style, so a converted buffer can be pasted into
+Slack unchanged.
+
+The plugin is pure Vimscript and works in Vim 8.0+ and Neovim with no
+runtime dependencies. The emoji map is generated from a pinned revision of
+`iamcal/emoji-data` and committed to the repository, so installing the
+plugin needs no network or build step.
+
+==============================================================================
+2. COMMANDS                                           *emoji-to-text-commands*
+
+                                                        *:EmojiToText*
+:EmojiToText            Convert the emoji in the whole current buffer to
+                        shortcodes. The conversion is a single undo step.
+                        The command prints no message on success.
+
+                        The command ignores any range and always acts on the
+                        whole buffer.
+
+==============================================================================
+3. MAPPINGS                                           *emoji-to-text-mappings*
+
+The plugin ships no default mapping. Assign your own, for example: >
+
+    nnoremap <leader>et :EmojiToText<CR>
+
+==============================================================================
+4. LIMITS                                               *emoji-to-text-limits*
+
+- Only fully-qualified emoji are converted, including zero-width-joiner
+  sequences, flags, and keycaps. Non-qualified forms are left unchanged.
+- Skin-tone modifiers are dropped, so a toned emoji converts to its base
+  shortcode.
+- Bare typographic characters such as `©` are left unchanged.
+- Unrecognized emoji are left byte-identical.
+- Conversion is always explicit; nothing runs on paste, insert, or write.
+- There is no reverse conversion from shortcode back to emoji.
+- The whole buffer is converted; there is no visual-range mode.
+
+==============================================================================
+5. LICENSE                                             *emoji-to-text-license*
+
+The plugin is released under the MIT License. The emoji data is derived
+from `iamcal/emoji-data`, which is also MIT licensed. See the `LICENSE` and
+`NOTICE` files in the repository root.
+
+vim:tw=78:ts=8:ft=help:norl:

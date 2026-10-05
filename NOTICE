@@ -1,0 +1,15 @@
+EmojiToText
+
+Emoji shortcode data
+--------------------
+
+The generated map in autoload/emoji_to_text/data.vim is derived from
+iamcal/emoji-data:
+
+    https://github.com/iamcal/emoji-data
+    Pinned revision: v16.0.0 (2771d0b1b3af25c069086e68e38f901c3dda8bdf)
+    Copyright (c) 2013 Cal Henderson
+    Licensed under the MIT License.
+
+The upstream project ships the full license text at its repository root.
+This plugin ships its own MIT license in LICENSE.

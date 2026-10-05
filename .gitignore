@@ -1,6 +1,7 @@
 # dev-only tooling, never shipped
 vendor/
 .themis/
+doc/tags
 __pycache__/
 *.pyc
 *.tmp

@@ -1,0 +1,52 @@
+name: Test
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  behavior:
+    name: Behavior specs (${{ matrix.editor }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        editor: [vim, nvim]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: rhysd/action-setup-vim@v1
+        with:
+          neovim: ${{ matrix.editor == 'nvim' }}
+      - name: Install themis
+        run: make vendor/vim-themis/bin/themis
+      - name: Run behavior specs
+        run: make test-${{ matrix.editor }}
+
+  generate-check:
+    name: Generate check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - uses: rhysd/action-setup-vim@v1
+      - name: Regenerate and diff the committed map
+        run: make generate-check
+      - name: Generator tests
+        run: python3 test/test_generate.py
+      - name: Encoding guard tests
+        run: python3 test/test_encoding.py
+
+  refresh-check:
+    name: Refresh selection
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Refresh tests
+        run: python3 test/test_refresh.py
+      - name: Dry run against upstream
+        run: make refresh-check
