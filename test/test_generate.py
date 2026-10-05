@@ -6,6 +6,7 @@ v16.0.0 key count against the live pinned dataset. Run with:
     python3 test/test_generate.py
 """
 
+import hashlib
 import json
 import sys
 import tempfile
@@ -129,6 +130,51 @@ class GenerateMapTest(unittest.TestCase):
                 gen.main(["--input", str(source), "--output", str(output), "--check"]),
                 0,
             )
+
+
+class DatasetCacheTest(unittest.TestCase):
+    """The verified cache must be reused, and must never mask a bad payload."""
+
+    def setUp(self):
+        self._cache_dir = gen.CACHE_DIR
+        self._sha = gen.SOURCE_SHA256
+        self._urlopen = gen.urllib.request.urlopen
+        self.raw = json.dumps([entry("1F600", "grinning")]).encode("utf-8")
+        gen.SOURCE_SHA256 = hashlib.sha256(self.raw).hexdigest()
+        self.tmp = tempfile.TemporaryDirectory()
+        gen.CACHE_DIR = Path(self.tmp.name)
+
+    def tearDown(self):
+        gen.CACHE_DIR = self._cache_dir
+        gen.SOURCE_SHA256 = self._sha
+        gen.urllib.request.urlopen = self._urlopen
+        self.tmp.cleanup()
+
+    def cache_path(self):
+        return gen.CACHE_DIR / ("emoji-%s.json" % gen.SOURCE_COMMIT)
+
+    def test_verified_cache_skips_network(self):
+        self.cache_path().write_bytes(self.raw)
+        gen.urllib.request.urlopen = lambda *a, **k: self.fail("cache miss")
+        self.assertEqual(gen.load_dataset()[0]["unified"], "1F600")
+
+    def test_corrupt_cache_refetches_and_rewrites(self):
+        self.cache_path().write_bytes(b"{}")
+        payload = self.raw
+
+        class Response:
+            def __enter__(self):
+                return self
+
+            def __exit__(self, *args):
+                return False
+
+            def read(self):
+                return payload
+
+        gen.urllib.request.urlopen = lambda *a, **k: Response()
+        self.assertEqual(gen.load_dataset()[0]["unified"], "1F600")
+        self.assertEqual(self.cache_path().read_bytes(), self.raw)
 
 
 if __name__ == "__main__":
