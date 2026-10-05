@@ -1,0 +1,7 @@
+# dev-only tooling, never shipped
+vendor/
+.themis/
+__pycache__/
+*.pyc
+*.tmp
+.DS_Store
