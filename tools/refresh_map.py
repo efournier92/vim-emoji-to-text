@@ -4,17 +4,19 @@
 Queries upstream tags, selects the highest semver tag, rewrites the pin
 constants in tools/generate_map.py, downloads and hashes that revision,
 regenerates autoload/emoji_to_text/data.vim in place, and updates the
-README revision line. --dry-run only prints the selected tag.
+README revision line and NOTICE. Every file is computed in memory before
+any write, and each write goes through a temp file plus os.replace, so a
+failure before the write phase leaves the tree untouched. --dry-run only
+prints the selected tag.
 """
 
 import argparse
 import datetime
 import hashlib
 import json
+import os
 import re
-import subprocess
 import sys
-import tempfile
 import urllib.request
 from pathlib import Path
 
@@ -26,6 +28,11 @@ TAGS_API = "https://api.github.com/repos/iamcal/emoji-data/tags?per_page=100"
 RAW_URL = "https://raw.githubusercontent.com/iamcal/emoji-data/%s/emoji.json"
 SEMVER = re.compile(r"^v?(\d+)\.(\d+)\.(\d+)$")
 README_LINE = re.compile(r"^Pinned dataset: .*$", re.MULTILINE)
+NOTICE_PIN = re.compile(r"^    Pinned revision: .*$", re.MULTILINE)
+NOTICE_ANCHOR = re.compile(
+    r"^(?:    https://github\.com/iamcal/emoji-data|Emoji Sources)\s*$",
+    re.MULTILINE,
+)
 
 
 def semver_key(tag):
@@ -61,52 +68,58 @@ def download_dataset(commit):
     return raw, hashlib.sha256(raw).hexdigest()
 
 
-def rewrite_pin(tag, commit, digest, date=None):
-    date = date or datetime.date.today().isoformat()
-    path = TOOLS_DIR / "generate_map.py"
-    text = path.read_text(encoding="utf-8")
-    text = re.sub(r'^SOURCE_TAG = ".*"$', 'SOURCE_TAG = "%s"' % tag, text, flags=re.M)
+def render_pin(source_text, tag, commit, digest, date):
+    """Return generate_map.py text with the four SOURCE_* lines repinned."""
+    text = re.sub(r'^SOURCE_TAG = ".*"$', 'SOURCE_TAG = "%s"' % tag, source_text, flags=re.M)
     text = re.sub(
         r'^SOURCE_COMMIT = ".*"$', 'SOURCE_COMMIT = "%s"' % commit, text, flags=re.M
     )
     text = re.sub(
         r'^SOURCE_SHA256 = ".*"$', 'SOURCE_SHA256 = "%s"' % digest, text, flags=re.M
     )
-    text = re.sub(
+    return re.sub(
         r'^SOURCE_DATE = ".*"$', 'SOURCE_DATE = "%s"' % date, text, flags=re.M
     )
-    path.write_text(text, encoding="utf-8")
 
 
-def update_readme(tag, commit):
-    path = REPO_ROOT / "README.md"
-    if not path.exists():
-        return
-    text = path.read_text(encoding="utf-8")
+def render_notice(source_text, tag, commit):
+    """Return NOTICE text with the pinned revision updated or added."""
+    line = "    Pinned revision: %s (%s)" % (tag, commit)
+    if NOTICE_PIN.search(source_text):
+        return NOTICE_PIN.sub(line, source_text, count=1)
+    anchor = NOTICE_ANCHOR.search(source_text)
+    if anchor:
+        # minimalist: insert after the block heading/URL; rest stays byte-identical.
+        return source_text[:anchor.end()] + "\n" + line + source_text[anchor.end():]
+    return source_text.rstrip() + "\n\n" + line + "\n"
+
+
+def render_readme(source_text, tag, commit):
+    """Return README text with the pinned dataset line updated or added."""
     line = "Pinned dataset: iamcal/emoji-data %s (%s)" % (tag, commit)
-    if README_LINE.search(text):
-        text = README_LINE.sub(line, text, count=1)
-    else:
-        text = text.rstrip() + "\n\n" + line + "\n"
-    path.write_text(text, encoding="utf-8")
+    if README_LINE.search(source_text):
+        return README_LINE.sub(line, source_text, count=1)
+    return source_text.rstrip() + "\n\n" + line + "\n"
 
 
-def run_generator(dataset_path):
-    subprocess.run(
-        [
-            sys.executable,
-            str(TOOLS_DIR / "generate_map.py"),
-            "--input",
-            str(dataset_path),
-            "--output",
-            str(REPO_ROOT / generate_map.DEFAULT_OUTPUT),
-        ],
-        check=True,
-        cwd=str(REPO_ROOT),
-    )
+def write_atomic(path, text):
+    """Write text via a sibling temp file and os.replace."""
+    path = Path(path)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    tmp = path.with_name(path.name + ".tmp")
+    tmp.write_text(text, encoding="utf-8")
+    os.replace(str(tmp), str(path))
+
+
+def rewrite_pin(tag, commit, digest, date=None):
+    date = date or datetime.date.today().isoformat()
+    path = TOOLS_DIR / "generate_map.py"
+    text = path.read_text(encoding="utf-8")
+    write_atomic(path, render_pin(text, tag, commit, digest, date))
 
 
 def refresh(dry_run=False, today=None):
+    date = today or datetime.date.today().isoformat()
     latest = select_latest_tag(fetch_tags())
     tag, commit = latest["name"], latest["sha"]
 
@@ -119,15 +132,44 @@ def refresh(dry_run=False, today=None):
         return 0
 
     raw, digest = download_dataset(commit)
-    rewrite_pin(tag, commit, digest, today)
-    with tempfile.NamedTemporaryFile(suffix=".json", delete=False) as handle:
-        handle.write(raw)
-        dataset_path = handle.name
-    try:
-        run_generator(dataset_path)
-    finally:
-        Path(dataset_path).unlink(missing_ok=True)
-    update_readme(tag, commit)
+
+    # Compute every output before touching the tree (compute-first, write-last).
+    pin_path = TOOLS_DIR / "generate_map.py"
+    pin_text = render_pin(
+        pin_path.read_text(encoding="utf-8"), tag, commit, digest, date
+    )
+    readme_path = REPO_ROOT / "README.md"
+    readme_text = (
+        render_readme(readme_path.read_text(encoding="utf-8"), tag, commit)
+        if readme_path.exists()
+        else None
+    )
+    notice_path = REPO_ROOT / "NOTICE"
+    notice_text = (
+        render_notice(notice_path.read_text(encoding="utf-8"), tag, commit)
+        if notice_path.exists()
+        else None
+    )
+    # The header must describe the NEW pin, so build meta from it rather than
+    # generate_map.default_meta(), which reads the stale module globals.
+    meta = {
+        "source_url": RAW_URL % commit,
+        "source_tag": tag,
+        "source_commit": commit,
+        "sha256": digest,
+        "refreshed": date,
+        "generator": generate_map.GENERATOR_VERSION,
+    }
+    entries = json.loads(raw.decode("utf-8"))
+    dataset_text = generate_map.render_vim(generate_map.build_map(entries), meta)
+
+    write_atomic(pin_path, pin_text)
+    write_atomic(REPO_ROOT / generate_map.DEFAULT_OUTPUT, dataset_text)
+    if readme_text is not None:
+        write_atomic(readme_path, readme_text)
+    if notice_text is not None:
+        write_atomic(notice_path, notice_text)
+
     print("Refreshed pin to %s (%s)" % (tag, commit))
     return 0
 
