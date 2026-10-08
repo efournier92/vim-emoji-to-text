@@ -252,3 +252,29 @@ function! s:suite.case_26_undo_multiline_single_step() abort
   call s:assert.equals(getline(1, '$'), l:original)
   call delete(l:file)
 endfunction
+
+" 27. Nomodifiable guard: the command declines without raising and leaves
+" the buffer and search register untouched.
+function! s:suite.case_27_nomodifiable_guard() abort
+  call s:set_lines(['😀'])
+  setlocal nomodifiable
+  call setreg('/', 'keepme27')
+  let l:exception = ''
+  try
+    EmojiToText
+  catch
+    let l:exception = v:exception
+  endtry
+  call s:assert.equals(l:exception, '')
+  call s:assert.equals(getline(1), '😀')
+  call s:assert.equals(getreg('/'), 'keepme27')
+  setlocal modifiable
+endfunction
+
+" 28. Modifiable control: after case 27 the guard does not leak.
+function! s:suite.case_28_modifiable_control() abort
+  setlocal modifiable
+  call s:set_lines(['😀'])
+  EmojiToText
+  call s:assert.equals(getline(1), ':grinning:')
+endfunction
