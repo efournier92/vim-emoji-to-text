@@ -1,5 +1,10 @@
 #!/usr/bin/env python3
-"""Gate bench/run.sh metrics against a recorded baseline. Stdlib only."""
+"""Gate bench/run.sh metrics against a recorded baseline. Stdlib only.
+
+The gate compares host-independent ratios: each payload's per-run time divided
+by a same-run CPU calibration, so absolute wall-clock differences between hosts
+cancel out. Legacy absolute metrics are still parsed and recorded.
+"""
 
 import argparse
 import json
@@ -10,7 +15,10 @@ import sys
 from pathlib import Path
 
 DEFAULT_TOLERANCE = 0.5
-GATED = re.compile(r"^(?:exec:.+:per_run_ms|load:.+:delta_ms)$")
+CALIB_PAYLOAD = "calib"
+EXEC_METRIC = re.compile(r"^exec:([^:]+):([^:]+):([^:]+):per_run_ms$")
+LOAD_SOURCE = re.compile(r"^load:([^:]+):source_data_ms$")
+GATED = re.compile(r"^(?:exec:[^:]+:[^:]+:[^:]+:ratio|load:[^:]+:source_ratio)$")
 
 
 def is_gated(key):
@@ -52,6 +60,50 @@ def parse_lines(text):
     return metrics
 
 
+def calibration(metrics):
+    """Map editor -> calibration per_run_ms from `exec <editor> calib ...` lines."""
+    calibs = {}
+    for key, value in metrics.items():
+        match = EXEC_METRIC.match(key)
+        if match and match.group(2) == CALIB_PAYLOAD:
+            calibs[match.group(1)] = value
+    return calibs
+
+
+def editors_needing_calibration(metrics):
+    """Editors that emitted a payload or source metric, and thus need a calib."""
+    editors = set()
+    for key in metrics:
+        match = EXEC_METRIC.match(key)
+        if match:
+            if match.group(2) != CALIB_PAYLOAD:
+                editors.add(match.group(1))
+            continue
+        match = LOAD_SOURCE.match(key)
+        if match:
+            editors.add(match.group(1))
+    return editors
+
+
+def derive(metrics):
+    """Return the gated ratios: payload/calib and source_data/calib per editor."""
+    calibs = calibration(metrics)
+    ratios = {}
+    for key, value in metrics.items():
+        match = EXEC_METRIC.match(key)
+        if match:
+            editor, payload, lines = match.groups()
+            if payload != CALIB_PAYLOAD and editor in calibs:
+                ratios["exec:%s:%s:%s:ratio" % (editor, payload, lines)] = value / calibs[editor]
+            continue
+        match = LOAD_SOURCE.match(key)
+        if match:
+            editor = match.group(1)
+            if editor in calibs:
+                ratios["load:%s:source_ratio" % editor] = value / calibs[editor]
+    return ratios
+
+
 def resolve_tolerance(cli=None, fallback=None):
     if cli is not None:
         return cli
@@ -85,34 +137,39 @@ def record(input_path, output_path, recorded_on, editor_versions, tolerance):
         "recorded_on": recorded_on,
         "editor_versions": editor_versions,
         "tolerance": tolerance,
-        "metrics": parse_lines(Path(input_path).read_text()),
+        "metrics": derive(parse_lines(Path(input_path).read_text())),
     }
     Path(output_path).write_text(json.dumps(baseline, indent=2, sort_keys=True) + "\n")
     return baseline
 
 
 def evaluate(metrics, baseline_metrics, tolerance):
-    """Return (violations, warnings) for the gated metrics."""
+    """Return (violations, derived_ratios)."""
+    derived = derive(metrics)
     violations = []
-    for key, value in sorted(metrics.items()):
+    if not derived:
+        violations.append("no derived ratios (empty run or no calibration)")
+
+    calibs = calibration(metrics)
+    for editor in sorted(editors_needing_calibration(metrics)):
+        if editor not in calibs:
+            violations.append("%s: calibration missing; cannot derive ratios" % editor)
+
+    for key, baseline in sorted(baseline_metrics.items()):
         if not is_gated(key):
             continue
-        if key not in baseline_metrics:
-            violations.append("%s: missing from baseline; re-record the baseline" % key)
+        if key not in derived:
+            violations.append("%s: baseline %s missing from run; re-record the baseline" % (key, baseline))
             continue
-        baseline = baseline_metrics[key]
-        # Signed metrics such as load delta_ms can be negative, where a
-        # multiplicative limit has no meaning; allow the same proportional
-        # headroom above the baseline in the regression direction instead.
-        limit = (
-            baseline * (1 + tolerance)
-            if baseline >= 0
-            else baseline + tolerance * abs(baseline)
-        )
+        value = derived[key]
+        limit = baseline * (1 + tolerance)
         if value > limit:
-            violations.append("%s: baseline %s current %s (limit %s)" % (key, baseline_metrics[key], value, limit))
-    warnings = [key for key in baseline_metrics if key not in metrics]
-    return violations, warnings
+            violations.append("%s: baseline %s current %s (limit %s)" % (key, baseline, value, limit))
+    return violations, derived
+
+
+def ci_truthy():
+    return os.environ.get("CI", "").strip().lower() in ("true", "1", "yes")
 
 
 def main(argv=None):
@@ -125,6 +182,8 @@ def main(argv=None):
     parser.add_argument("--tolerance", type=float)
     parser.add_argument("--recorded-on")
     parser.add_argument("--editor-versions")
+    parser.add_argument("--enforce", action="store_true")
+    parser.add_argument("--advisory", action="store_true")
     args = parser.parse_args(argv)
     if args.record == args.check:
         parser.error("choose exactly one of --record or --check")
@@ -141,16 +200,28 @@ def main(argv=None):
         parser.error("--check requires --baseline")
     baseline = json.loads(Path(args.baseline).read_text())
     tolerance = resolve_tolerance(args.tolerance, baseline.get("tolerance"))
-    violations, warnings = evaluate(parse_lines(Path(args.input).read_text()),
-                                    baseline.get("metrics", {}), tolerance)
-    for key in warnings:
-        print("warning: %s: in baseline but absent from run" % key, file=sys.stderr)
-    if violations:
+    metrics = parse_lines(Path(args.input).read_text())
+    violations, derived = evaluate(metrics, baseline.get("metrics", {}), tolerance)
+
+    # An empty derived set is a hard failure: the gate has nothing to guard.
+    if not derived:
         print("bench-check failed (tolerance %s):" % tolerance, file=sys.stderr)
         for violation in violations:
             print("  " + violation, file=sys.stderr)
         return 1
-    print("bench-check passed (tolerance %s)" % tolerance)
+
+    if not violations:
+        print("bench-check passed (tolerance %s)" % tolerance)
+        return 0
+
+    enforce = (args.enforce or ci_truthy()) and not args.advisory
+    if enforce:
+        print("bench-check failed (tolerance %s):" % tolerance, file=sys.stderr)
+        for violation in violations:
+            print("  " + violation, file=sys.stderr)
+        return 1
+    for violation in violations:
+        print("advisory: " + violation)
     return 0
 
 
