@@ -52,6 +52,8 @@ The plugin ships no default mapping. Assign your own, for example: >
 - Conversion is always explicit; nothing runs on paste, insert, or write.
 - There is no reverse conversion from shortcode back to emoji.
 - The whole buffer is converted; there is no visual-range mode.
+- A buffer with `'nomodifiable'` set is left unchanged; the command prints
+  a message instead of raising an error.
 
 ==============================================================================
 5. LICENSE                                             *emoji-to-text-license*
