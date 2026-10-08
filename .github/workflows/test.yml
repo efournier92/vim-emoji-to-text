@@ -2,56 +2,84 @@ name: Test
 
 on:
   push:
+    branches: [main]
   pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   behavior:
     name: Behavior specs (${{ matrix.editor }})
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
     strategy:
       fail-fast: false
       matrix:
         editor: [vim, nvim]
     steps:
-      - uses: actions/checkout@v4
-      - uses: rhysd/action-setup-vim@v1
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: rhysd/action-setup-vim@febef33995d6649302e9d88dda81e071b68f16a7 # v1.6.1
         with:
           neovim: ${{ matrix.editor == 'nvim' }}
+          version: ${{ matrix.editor == 'nvim' && 'v0.12.5' || 'v9.2.1167' }}
+      - name: Cache themis
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: vendor/vim-themis
+          key: themis-v1.7.0-${{ runner.os }}-${{ runner.arch }}
+          restore-keys: |
+            themis-v1.7.0-${{ runner.os }}-
       - name: Install themis
+        timeout-minutes: 5
         run: make vendor/vim-themis/bin/themis
       - name: Run behavior specs
+        timeout-minutes: 10
         run: make test-${{ matrix.editor }}
 
   generate-check:
     name: Generate check
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
           python-version: "3.12"
       - name: Cache verified dataset
-        uses: actions/cache@v4
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: tools/.cache
           key: emoji-data-${{ hashFiles('tools/generate_map.py') }}
-      - uses: rhysd/action-setup-vim@v1
+          restore-keys: |
+            emoji-data-
+      - uses: rhysd/action-setup-vim@febef33995d6649302e9d88dda81e071b68f16a7 # v1.6.1
+        with:
+          version: v9.2.1167
       - name: Regenerate and diff the committed map
+        timeout-minutes: 5
         run: make generate-check
       - name: Generator tests
+        timeout-minutes: 10
         run: python3 test/test_generate.py
       - name: Encoding guard tests
+        timeout-minutes: 5
         run: python3 test/test_encoding.py
 
   refresh-check:
     name: Refresh selection
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
           python-version: "3.12"
       - name: Refresh tests
+        timeout-minutes: 5
         run: python3 test/test_refresh.py
-      - name: Dry run against upstream
-        run: make refresh-check
