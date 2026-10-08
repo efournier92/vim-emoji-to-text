@@ -32,6 +32,41 @@ function! s:payload(kind, lines) abort
   throw 'unknown payload: ' . a:kind
 endfunction
 
+" Pure-Vimscript CPU workload; the result is returned so it cannot be folded away.
+function! s:calib(n) abort
+  let l:acc = 0
+  for l:i in range(a:n)
+    let l:acc = (l:acc + l:i * 3) % 2147483647
+  endfor
+  return l:acc
+endfunction
+
+function! s:bench_calib(iterations, reps) abort
+  call s:calib(a:iterations)
+  let l:total = 0.0
+  for l:i in range(a:reps)
+    let l:t = reltime()
+    call s:calib(a:iterations)
+    let l:total += reltimefloat(reltime(l:t))
+  endfor
+  call add(s:out, printf('exec calib lines=%d reps=%d per_run_ms=%.3f',
+        \ a:iterations, a:reps, l:total * 1000.0 / a:reps))
+  call writefile(s:out, $BENCH_OUT)
+endfunction
+
+function! s:bench_source(reps) abort
+  let l:path = s:root . '/autoload/emoji_to_text/data.vim'
+  let l:times = []
+  for l:i in range(a:reps)
+    let l:t = reltime()
+    execute 'source ' . fnameescape(l:path)
+    call add(l:times, reltimefloat(reltime(l:t)) * 1000.0)
+  endfor
+  call sort(l:times)
+  call add(s:out, printf('load source_data_ms=%.3f', l:times[len(l:times) / 2]))
+  call writefile(s:out, $BENCH_OUT)
+endfunction
+
 function! s:bench(kind, lines, reps) abort
   let l:rows = s:payload(a:kind, a:lines)
   silent! enew!
@@ -53,12 +88,14 @@ endfunction
 
 call writefile(['started'], $BENCH_OUT)
 try
-  call s:bench('empty', 1, 20)
-  call s:bench('ascii', 200, 3)
-  call s:bench('mixed', 200, 3)
-  call s:bench('light', 200, 3)
-  call s:bench('heavy', 200, 3)
-  call s:bench('heavy', 1000, 1)
+  call s:bench_calib(20000, 10)
+  call s:bench('empty', 1, 100)
+  call s:bench('ascii', 200, 10)
+  call s:bench('mixed', 200, 10)
+  call s:bench('light', 200, 10)
+  call s:bench('heavy', 200, 10)
+  call s:bench('heavy', 1000, 3)
+  call s:bench_source(9)
 catch
   call add(s:out, 'exec ERROR ' . v:exception)
 endtry
