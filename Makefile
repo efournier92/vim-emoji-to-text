@@ -33,7 +33,9 @@ $(THEMIS_BIN):
 bench:
 	BENCH_OUT=bench/last.txt bash bench/run.sh all
 
-bench-record: bench
+bench-record:
+	@if [ "$$BENCH_RECORD_FORCE" != "1" ]; then echo "Refusing to overwrite bench/baseline.json; run the Bench Baseline workflow or set BENCH_RECORD_FORCE=1." >&2; exit 1; fi
+	$(MAKE) bench
 	$(PYTHON) bench/check.py --record --input bench/last.txt --output bench/baseline.json
 
 bench-check: bench
