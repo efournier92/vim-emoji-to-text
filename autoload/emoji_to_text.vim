@@ -76,6 +76,10 @@ function! emoji_to_text#convert() abort
     echomsg 'EmojiToText: requires encoding=utf-8; buffer left unchanged'
     return
   endif
+  if !&modifiable
+    echomsg 'EmojiToText: buffer is not modifiable; buffer left unchanged'
+    return
+  endif
   if empty(s:map)
     let s:map = emoji_to_text#data#map()
     call s:build_trie()

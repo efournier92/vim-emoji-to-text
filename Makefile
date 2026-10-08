@@ -3,7 +3,7 @@ THEMIS_DIR ?= vendor/vim-themis
 THEMIS_BIN := $(THEMIS_DIR)/bin/themis
 PYTHON ?= python3
 
-.PHONY: all generate generate-check refresh-map refresh-check test test-vim test-nvim release
+.PHONY: all generate generate-check refresh-map refresh-check test test-vim test-nvim release bench bench-record bench-check check-changelog check
 
 all: generate-check test
 
@@ -19,11 +19,7 @@ refresh-map:
 refresh-check:
 	$(PYTHON) tools/refresh_map.py --dry-run
 
-# Editors are independent, so run both suites concurrently and wait for both.
-test:
-	@$(MAKE) -s test-vim & v=$$!; $(MAKE) -s test-nvim & n=$$!; \
-	wait $$v; rv=$$?; wait $$n; rn=$$?; \
-	if [ $$rv -ne 0 ] || [ $$rn -ne 0 ]; then exit 1; fi
+test: test-vim test-nvim
 
 test-vim: $(THEMIS_BIN)
 	THEMIS_VIM=vim THEMIS_ARGS="-e -s" $(THEMIS_BIN) test/
@@ -34,13 +30,31 @@ test-nvim: $(THEMIS_BIN)
 $(THEMIS_BIN):
 	git clone --branch v1.7.0 --depth 1 https://github.com/thinca/vim-themis.git $(THEMIS_DIR)
 
-release:
+bench:
+	BENCH_OUT=bench/last.txt bash bench/run.sh all
+
+bench-record: bench
+	$(PYTHON) bench/check.py --record --input bench/last.txt --output bench/baseline.json
+
+bench-check: bench
+	$(PYTHON) bench/check.py --check --input bench/last.txt --baseline bench/baseline.json
+
+check-changelog:
+	@if [ -z "$(DATE)" ]; then echo "DATE is unset" >&2; exit 1; fi
+	$(PYTHON) tools/check_changelog.py $(DATE)
+
+check: check-changelog
+
+# Bare prerequisite so the documented `release: check DATE` invocation is valid.
+DATE:
+
+release: check DATE
 	$(PYTHON) tools/refresh_map.py
 	$(MAKE) test
 	$(MAKE) generate-check
-	git add tools/generate_map.py autoload/emoji_to_text/data.vim README.md
+	git add tools/generate_map.py autoload/emoji_to_text/data.vim README.md NOTICE CHANGELOG.md
 	@if git diff --cached --quiet; then \
 		echo "EmojiToText release: pin already current, nothing to commit."; \
 	else \
-		git commit -m "Refresh EmojiToText Dataset Pin"; \
+		git commit -m "Release $(DATE)"; \
 	fi

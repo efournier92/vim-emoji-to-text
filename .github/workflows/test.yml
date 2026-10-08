@@ -21,13 +21,25 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        editor: [vim, nvim]
+        include:
+          - editor: vim
+            target: test-vim
+            version: v9.2.1167
+            neovim: false
+          - editor: vim-old
+            target: test-vim
+            version: v8.0.0000
+            neovim: false
+          - editor: nvim
+            target: test-nvim
+            version: v0.12.5
+            neovim: true
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: rhysd/action-setup-vim@febef33995d6649302e9d88dda81e071b68f16a7 # v1.6.1
         with:
-          neovim: ${{ matrix.editor == 'nvim' }}
-          version: ${{ matrix.editor == 'nvim' && 'v0.12.5' || 'v9.2.1167' }}
+          neovim: ${{ matrix.neovim }}
+          version: ${{ matrix.version }}
       - name: Cache themis
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
@@ -40,7 +52,30 @@ jobs:
         run: make vendor/vim-themis/bin/themis
       - name: Run behavior specs
         timeout-minutes: 10
-        run: make test-${{ matrix.editor }}
+        run: make ${{ matrix.target }}
+
+  bench-check:
+    name: Bench check
+    needs: behavior
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.12"
+      - name: Install Vim
+        uses: rhysd/action-setup-vim@febef33995d6649302e9d88dda81e071b68f16a7 # v1.6.1
+        with:
+          version: v9.2.1167
+      - name: Install Neovim
+        uses: rhysd/action-setup-vim@febef33995d6649302e9d88dda81e071b68f16a7 # v1.6.1
+        with:
+          neovim: true
+          version: v0.12.5
+      - name: Run bench check
+        timeout-minutes: 10
+        run: make bench-check
 
   generate-check:
     name: Generate check

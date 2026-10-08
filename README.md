@@ -1,12 +1,23 @@
 # EmojiToText
 
+[![Test](https://github.com/efournier92/vim-emoji-to-text/actions/workflows/test.yml/badge.svg)](https://github.com/efournier92/vim-emoji-to-text/actions/workflows/test.yml)
+
 A Vim 8+ and Neovim plugin that replaces fully-qualified emoji in the current buffer with Slack-style `:shortcode:` text, for example `:grinning:`.
 
 Works in Vim 8.0+ and Neovim from one pure-Vimscript codebase with no runtime dependencies.
 
+## Requirements
+
+- Vim 8.0 or newer (or the proven CI floor) with `+eval` and `+multi_byte`.
+- Neovim at or above the CI-tested floor.
+- No runtime dependencies.
+- Python 3.8 or newer, required only to build and test.
+- `vim-themis` v1.7.0, required only for the behavior suite.
+- A POSIX shell, required only for local Makefile targets.
+
 ## Install
 
-EmojiToText is a standard runtimepath plugin: no build step, no runtime dependencies, and no editor-specific files. It works with any Vim or Neovim plugin manager, including vim-plug, Vundle, Pathogen, dein.vim, minpac, lazy.nvim, packer.nvim, and Vim's native `packages` (`:packadd`), or a manual `set runtimepath+=/path/to/vim-emoji-to-text`.
+EmojiToText is a standard runtimepath plugin: no build step, no runtime dependencies, and no editor-specific files. It works with any Vim or Neovim plugin manager, including vim-plug, Vundle, Pathogen, dein.vim, minpac, lazy.nvim, packer.nvim, and Vim's native `packages` (`:packadd`), or a manual `set runtimepath+=/path/to/vim-emoji-to-text`. A manual `set runtimepath+=` install also needs `:helptags doc` so that `:help emoji-to-text` works.
 
 With vim-plug, add this and run `:PlugInstall`:
 
@@ -55,6 +66,10 @@ After installing, open the documentation with `:help emoji-to-text`.
 ## Development
 
 Run the checks with `make generate-check`, `make test`, and `make refresh-check`. `make test` runs the vim-themis behavior specs under both Vim and Neovim.
+
+Run both suites in parallel with `make -j2 test`. Run the benchmarks with `make bench` and gate them with `make bench-check`.
+
+See `docs/RELEASING.md` for the release process.
 
 ## License
 

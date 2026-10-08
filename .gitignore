@@ -6,4 +6,5 @@ doc/tags
 __pycache__/
 *.pyc
 *.tmp
+bench/last.txt
 .DS_Store

@@ -1,0 +1,33 @@
+{
+  "editor_versions": {
+    "nvim": "v0.12.5",
+    "vim": "v9.2.1167"
+  },
+  "metrics": {
+    "build:generate_check_s": 0.484,
+    "build:test_nvim_s": 0.103,
+    "build:test_vim_s": 0.565,
+    "exec:nvim:ascii:200:per_run_ms": 1.221,
+    "exec:nvim:empty:1:per_run_ms": 0.032,
+    "exec:nvim:heavy:1000:per_run_ms": 161.662,
+    "exec:nvim:heavy:200:per_run_ms": 32.843,
+    "exec:nvim:light:200:per_run_ms": 26.758,
+    "exec:nvim:mixed:200:per_run_ms": 2.94,
+    "exec:vim:ascii:200:per_run_ms": 1.798,
+    "exec:vim:empty:1:per_run_ms": 0.041,
+    "exec:vim:heavy:1000:per_run_ms": 291.587,
+    "exec:vim:heavy:200:per_run_ms": 57.859,
+    "exec:vim:light:200:per_run_ms": 38.099,
+    "exec:vim:mixed:200:per_run_ms": 4.737,
+    "install:archive_bytes": 67790.0,
+    "install:files": 29.0,
+    "load:nvim:base_ms": 7.382,
+    "load:nvim:delta_ms": -0.294,
+    "load:nvim:plugin_ms": 7.088,
+    "load:vim:base_ms": 3.345,
+    "load:vim:delta_ms": -0.283,
+    "load:vim:plugin_ms": 3.062
+  },
+  "recorded_on": "ubuntu-24.04",
+  "tolerance": 0.5
+}
