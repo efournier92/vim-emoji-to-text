@@ -28,7 +28,7 @@ A `## [YYYY-MM-DD]` section in `CHANGELOG.md` with at least one non-blank line, 
 
 **Benchmark Baseline**
 
-The committed `bench/baseline.json` recording reference per-metric results, captured on the pinned CI runner image. _Avoid_: snapshot, golden file.
+The committed `bench/baseline.json` recording reference per-metric results, captured on the `ubuntu-latest` runner. _Avoid_: snapshot, golden file.
 
 **Perf Gate**
 
