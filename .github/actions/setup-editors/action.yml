@@ -1,0 +1,26 @@
+name: Setup editors
+description: Install Vim from the distribution and Neovim from the pinned prebuilt tarball.
+
+inputs:
+  neovim:
+    description: Neovim release tag to install.
+    required: false
+    default: v0.12.5
+
+runs:
+  using: composite
+  steps:
+    - name: Install Vim
+      shell: bash
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y --no-install-recommends vim
+        vim --version | head -1
+    - name: Install Neovim
+      shell: bash
+      run: |
+        curl -fsSL "https://github.com/neovim/neovim/releases/download/${{ inputs.neovim }}/nvim-linux-x86_64.tar.gz" -o "$RUNNER_TEMP/nvim.tar.gz"
+        # minimalist: extract into /opt so the binary never crosses a filesystem boundary, the EXDEV rename that broke the old setup action.
+        sudo tar -C /opt -xzf "$RUNNER_TEMP/nvim.tar.gz"
+        sudo ln -sf /opt/nvim-linux-x86_64/bin/nvim /usr/local/bin/nvim
+        nvim --version | head -1

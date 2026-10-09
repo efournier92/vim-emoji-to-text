@@ -28,5 +28,11 @@ This addendum amends `docs/specs/2026-10-08_ProductionReadiness.md`, specificall
 
 ## Baseline Recording Rule
 
-- The committed baseline is recorded only on the `ubuntu-24.04` runner through the human-triggered Bench Baseline workflow, never from a developer machine.
+- The committed baseline is recorded only on the `ubuntu-latest` runner through the human-triggered Bench Baseline workflow, never from a developer machine.
 - `make bench-record` refuses to overwrite `bench/baseline.json` unless `BENCH_RECORD_FORCE=1` is set.
+
+## Runner And Editor Install
+
+- CI uses `ubuntu-latest` and installs Vim from the distribution and Neovim from the pinned prebuilt tarball, instead of `rhysd/action-setup-vim`.
+- The change is required because `ubuntu-latest` moves to 26.04 (runner-images #14748), where the pinned action fails with `EXDEV` (issue #80).
+- The `vim-old` leg was dropped; the Vim 8.0 floor was proven at the 2026-10-08 release.

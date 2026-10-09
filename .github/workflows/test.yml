@@ -16,7 +16,7 @@ concurrency:
 jobs:
   behavior:
     name: Behavior specs (${{ matrix.editor }})
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-latest
     timeout-minutes: 25
     strategy:
       fail-fast: false
@@ -24,22 +24,11 @@ jobs:
         include:
           - editor: vim
             target: test-vim
-            version: v9.2.1167
-            neovim: false
-          - editor: vim-old
-            target: test-vim
-            version: v8.0.0000
-            neovim: false
           - editor: nvim
             target: test-nvim
-            version: v0.12.5
-            neovim: true
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - uses: rhysd/action-setup-vim@febef33995d6649302e9d88dda81e071b68f16a7 # v1.6.1
-        with:
-          neovim: ${{ matrix.neovim }}
-          version: ${{ matrix.version }}
+      - uses: ./.github/actions/setup-editors
       - name: Cache themis
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
@@ -57,22 +46,14 @@ jobs:
   bench-check:
     name: Bench check
     needs: behavior
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-latest
     timeout-minutes: 25
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
           python-version: "3.12"
-      - name: Install Vim
-        uses: rhysd/action-setup-vim@febef33995d6649302e9d88dda81e071b68f16a7 # v1.6.1
-        with:
-          version: v9.2.1167
-      - name: Install Neovim
-        uses: rhysd/action-setup-vim@febef33995d6649302e9d88dda81e071b68f16a7 # v1.6.1
-        with:
-          neovim: true
-          version: v0.12.5
+      - uses: ./.github/actions/setup-editors
       - name: Bench gate tests
         timeout-minutes: 5
         run: python3 test/test_bench.py
@@ -82,7 +63,7 @@ jobs:
 
   generate-check:
     name: Generate check
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-latest
     timeout-minutes: 25
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -96,9 +77,7 @@ jobs:
           key: emoji-data-${{ hashFiles('tools/generate_map.py') }}
           restore-keys: |
             emoji-data-
-      - uses: rhysd/action-setup-vim@febef33995d6649302e9d88dda81e071b68f16a7 # v1.6.1
-        with:
-          version: v9.2.1167
+      - uses: ./.github/actions/setup-editors
       - name: Regenerate and diff the committed map
         timeout-minutes: 5
         run: make generate-check
@@ -111,7 +90,7 @@ jobs:
 
   refresh-check:
     name: Refresh selection
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1

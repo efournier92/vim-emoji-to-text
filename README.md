@@ -8,7 +8,7 @@ Works in Vim 8.0+ and Neovim from one pure-Vimscript codebase with no runtime de
 
 ## Requirements
 
-- Vim 8.0 or newer (or the proven CI floor) with `+eval` and `+multi_byte`.
+- Vim 8.0 or newer with `+eval` and `+multi_byte`.
 - Neovim at or above the CI-tested floor.
 - No runtime dependencies.
 - Python 3.8 or newer, required only to build and test.
@@ -65,7 +65,7 @@ After installing, open the documentation with `:help emoji-to-text`.
 
 ## Development
 
-Run the checks with `make generate-check`, `make test`, and `make refresh-check`. `make test` runs the vim-themis behavior specs under both Vim and Neovim.
+Run the checks with `make generate-check`, `make test`, and `make refresh-check`. `make test` runs the vim-themis behavior specs under both Vim and Neovim. CI runs the behavior specs on the distribution's Vim and on Neovim v0.12.5.
 
 Run both suites in parallel with `make -j2 test`. Run the benchmarks with `make bench` and gate them with `make bench-check`.
 

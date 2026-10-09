@@ -21,6 +21,11 @@ Nothing yet.
 - Changed the dataset refresh to compute every file before writing and to update `NOTICE` alongside the pin, the dataset, and the README.
 - Refreshed the README with a CI badge and updated Requirements and Development sections.
 - The performance gate now compares same-run ratios instead of an absolute wall-clock baseline, so it no longer depends on the host CPU speed.
+- CI now uses `ubuntu-latest` and installs Vim from the distribution and Neovim from the pinned prebuilt tarball, replacing `rhysd/action-setup-vim` so the workflows no longer follow a fixed runner image.
+
+### Removed
+
+- Removed the `vim-old` CI leg; the Vim 8.0 floor was proven at this release.
 
 ### Fixed
 
