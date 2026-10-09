@@ -20,10 +20,11 @@ Nothing yet.
 - Changed `make test` to run both suites sequentially, dropping the `&`/`wait` recipe so it works under a POSIX shell.
 - Changed the dataset refresh to compute every file before writing and to update `NOTICE` alongside the pin, the dataset, and the README.
 - Refreshed the README with a CI badge and updated Requirements and Development sections.
-- The performance gate now compares same-run ratios instead of an absolute wall-clock baseline, so it is host-independent.
+- The performance gate now compares same-run ratios instead of an absolute wall-clock baseline, so it no longer depends on the host CPU speed.
 
 ### Fixed
 
 - Fixed the `E21` failure on `'nomodifiable'` buffers by leaving them unchanged.
 - Fixed `NOTICE` pin drift by regenerating it during every dataset refresh.
 - The noisy `load:*:delta_ms` gate was replaced by a measured `source_data_ms` ratio, and missing benchmark metrics now fail instead of passing silently.
+- The empty-buffer benchmark metric is no longer gated, and the gate now warns when recorded editor versions drift.

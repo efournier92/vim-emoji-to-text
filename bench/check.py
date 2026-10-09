@@ -16,9 +16,12 @@ from pathlib import Path
 
 DEFAULT_TOLERANCE = 0.5
 CALIB_PAYLOAD = "calib"
+EMPTY_PAYLOAD = "empty"
 EXEC_METRIC = re.compile(r"^exec:([^:]+):([^:]+):([^:]+):per_run_ms$")
 LOAD_SOURCE = re.compile(r"^load:([^:]+):source_data_ms$")
 GATED = re.compile(r"^(?:exec:[^:]+:[^:]+:[^:]+:ratio|load:[^:]+:source_ratio)$")
+VIM_VERSION = re.compile(r"Vi IMproved (\d+\.\d+)")
+NVIM_VERSION = re.compile(r"NVIM v(\d+\.\d+\.\d+)")
 
 
 def is_gated(key):
@@ -76,7 +79,7 @@ def editors_needing_calibration(metrics):
     for key in metrics:
         match = EXEC_METRIC.match(key)
         if match:
-            if match.group(2) != CALIB_PAYLOAD:
+            if match.group(2) not in (CALIB_PAYLOAD, EMPTY_PAYLOAD):
                 editors.add(match.group(1))
             continue
         match = LOAD_SOURCE.match(key)
@@ -93,7 +96,8 @@ def derive(metrics):
         match = EXEC_METRIC.match(key)
         if match:
             editor, payload, lines = match.groups()
-            if payload != CALIB_PAYLOAD and editor in calibs:
+            # Minimalist: empty-buffer exec is ~1us and guards no conversion, so its ratio is pure scheduling noise.
+            if payload not in (CALIB_PAYLOAD, EMPTY_PAYLOAD) and editor in calibs:
                 ratios["exec:%s:%s:%s:ratio" % (editor, payload, lines)] = value / calibs[editor]
             continue
         match = LOAD_SOURCE.match(key)
@@ -130,6 +134,29 @@ def detect_editor_versions():
         if first:
             versions[name] = first[0].strip()
     return versions
+
+
+def normalize_version(editor, value):
+    """Reduce a raw `--version` line to the editor's comparable version number."""
+    pattern = NVIM_VERSION if editor == "nvim" else VIM_VERSION
+    match = pattern.search(value)
+    return match.group(1) if match else value.strip()
+
+
+def version_drift_warnings(baseline_versions):
+    """Return warning lines for editors whose recorded version differs from the current one."""
+    current = detect_editor_versions()
+    warnings = []
+    for editor, recorded in sorted(baseline_versions.items()):
+        if editor not in current:
+            continue
+        old = normalize_version(editor, recorded)
+        new = normalize_version(editor, current[editor])
+        if old != new:
+            # Minimalist: drift is surfaced, never a violation, so a version bump without a re-record stays visible.
+            warnings.append("warning: %s version drift: baseline %s current %s; re-record the baseline"
+                            % (editor, old, new))
+    return warnings
 
 
 def record(input_path, output_path, recorded_on, editor_versions, tolerance):
@@ -202,6 +229,11 @@ def main(argv=None):
     tolerance = resolve_tolerance(args.tolerance, baseline.get("tolerance"))
     metrics = parse_lines(Path(args.input).read_text())
     violations, derived = evaluate(metrics, baseline.get("metrics", {}), tolerance)
+
+    recorded_versions = baseline.get("editor_versions") or {}
+    if recorded_versions:
+        for warning in version_drift_warnings(recorded_versions):
+            print(warning)
 
     # An empty derived set is a hard failure: the gate has nothing to guard.
     if not derived:
