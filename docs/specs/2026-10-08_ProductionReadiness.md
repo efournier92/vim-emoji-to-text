@@ -1,9 +1,10 @@
 # EmojiToText: Production Readiness And Datestamp Release
 
+> **Amended.** `docs/specs/2026-10-08_BenchmarkPortability.md` supersedes the operational parts of this spec: the gate compares same-run conversion ratios and records but does not gate the load metrics, CI uses `ubuntu-latest` and installs Vim from the distribution and Neovim from the pinned tarball, and the `vim-old` leg was dropped. Every `ubuntu-24.04`, `v9.2.1167`, `vim-old`, and gated `load:*` statement below is historical; where the two disagree, the addendum wins.
+
 This spec closes the gaps found in the 2026-10-08 readiness pass and defines the datestamp release process.
 It builds on `docs/specs/2026-10-05_EmojiToText.md`, which is historical and is not edited by this work.
 Where the two disagree, this spec wins.
-The "Benchmark Gate" section below was later amended by `docs/specs/2026-10-08_BenchmarkPortability.md`: the gate compares same-run conversion ratios, records but does not gate the load metrics, and CI uses `ubuntu-latest`. Where the addendum and this spec disagree, the addendum wins.
 The work lands on `main` (a short-lived branch is fine), and the final step cuts the first release.
 
 ## Context And Motivation
@@ -167,6 +168,8 @@ Refactor `tools/refresh_map.py` so every write happens only after all content is
 
 ### Benchmark Gate
 
+Amended by `docs/specs/2026-10-08_BenchmarkPortability.md`: the gate is ratio-based and the load metrics are recorded but not gated.
+
 - Add `bench/check.py` (stdlib only) that parses `bench/run.sh` output lines of the form `<dimension> editor=<editor> ... key=value ...`.
 - A metric key is `exec:<editor>:<payload>:<lines>:per_run_ms` for `exec` dimensions and `load:<editor>:<field>` for `load` dimensions.
 - Gated metrics are all `exec:*:per_run_ms` values and the `load:*:delta_ms` value; `install:*` and `build:*` metrics are recorded but never gated.
@@ -192,6 +195,8 @@ Refactor `tools/refresh_map.py` so every write happens only after all content is
 
 ### Release Process And Workflow
 
+Amended: the job runs on `ubuntu-latest` and installs the editors without a pinned runner image.
+
 - Add `docs/RELEASING.md` describing the human process in order: confirm the pinned upstream tag is the intended one, add the `CHANGELOG.md` entry for the date in a normal commit on the default branch, run the Release workflow, and verify the tag and release.
 - Rewrite `.github/workflows/release.yml`:
   - Trigger only `on: workflow_dispatch`, with inputs `date` (string, optional; defaults to the UTC current date) and `dry_run` (boolean, default `false`).
@@ -204,6 +209,8 @@ Refactor `tools/refresh_map.py` so every write happens only after all content is
 - Every release step fails closed: a missing changelog entry, an unreachable upstream, a failed test, or a failed `generate-check` stops before any push or tag.
 
 ### CI Test Workflow
+
+Amended: the `vim-old` leg was dropped and the editors are installed from the distribution and the pinned tarball.
 
 - In `.github/workflows/test.yml`, change the behavior matrix at lines 23-30 to an explicit include list with an `editor`, a `target`, a `version`, and a `neovim` flag:
   - `vim` targeting `test-vim` at `v9.2.1167`.
@@ -225,6 +232,8 @@ Refactor `tools/refresh_map.py` so every write happens only after all content is
 - Extend the README Development section at lines 55-57 to list `make -j2 test`, `make bench`, `make bench-check`, and a pointer to `docs/RELEASING.md`.
 
 ## Production Risks And Mitigations
+
+Amended: the baseline is recorded on `ubuntu-latest` and the `vim-old` leg no longer exists.
 
 - A refreshed dataset could introduce a collision or an unsafe name; mitigate because `generate_map.build_map` aborts on collisions, empty names, and names outside `[a-z0-9_+-]`, and because the release runs `make generate-check`.
 - A failed refresh could leave a half-updated tree; mitigate with compute-first, write-last and temp-file-plus-`os.replace`, covered by an atomicity test.
