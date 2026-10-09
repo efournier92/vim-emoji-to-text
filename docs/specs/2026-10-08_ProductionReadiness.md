@@ -3,6 +3,7 @@
 This spec closes the gaps found in the 2026-10-08 readiness pass and defines the datestamp release process.
 It builds on `docs/specs/2026-10-05_EmojiToText.md`, which is historical and is not edited by this work.
 Where the two disagree, this spec wins.
+The "Benchmark Gate" section below was later amended by `docs/specs/2026-10-08_BenchmarkPortability.md`: the gate compares same-run conversion ratios, records but does not gate the load metrics, and CI uses `ubuntu-latest`. Where the addendum and this spec disagree, the addendum wins.
 The work lands on `main` (a short-lived branch is fine), and the final step cuts the first release.
 
 ## Context And Motivation
