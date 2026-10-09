@@ -62,6 +62,38 @@ class BenchTest(unittest.TestCase):
         self.assertTrue(bench.is_gated("load:vim:source_ratio"))
         self.assertFalse(bench.is_gated("load:vim:delta_ms"))
 
+    def test_derive_skips_empty_payload_ratio(self):
+        run = "\n".join([CALIB_LINE, "exec editor=vim empty lines=1 reps=100 per_run_ms=0.01"])
+        ratios = bench.derive(bench.parse_lines(run))
+        self.assertFalse(any("empty" in key for key in ratios))
+
+    def test_check_passes_with_empty_payload_enforced(self):
+        run = self.write("run.txt", "\n".join([
+            CALIB_LINE, EXEC_LINE,
+            "exec editor=vim empty lines=1 reps=100 per_run_ms=0.01",
+        ]))
+        baseline = self.write("baseline.json", json.dumps(
+            {"tolerance": 0.5, "metrics": {"exec:vim:heavy:1000:ratio": 31.0}}))
+        code, _, _ = run_main(["--check", "--input", run, "--baseline", baseline, "--enforce"])
+        self.assertEqual(code, 0)
+
+    def test_version_drift_warns_but_still_passes(self):
+        run = self.write("run.txt", "\n".join([CALIB_LINE, EXEC_LINE]))
+        baseline = self.write("baseline.json", json.dumps({
+            "tolerance": 0.5,
+            "editor_versions": {"vim": "9.0", "nvim": "0.11.0"},
+            "metrics": {"exec:vim:heavy:1000:ratio": 31.0},
+        }))
+        detected = {
+            "vim": "VIM - Vi IMproved 9.2 (2026 Feb 14, compiled Oct  8 2026 19:38:07)",
+            "nvim": "NVIM v0.12.5",
+        }
+        with mock.patch.object(bench, "detect_editor_versions", return_value=detected):
+            code, out, err = run_main(
+                ["--check", "--input", run, "--baseline", baseline, "--enforce"])
+        self.assertEqual(code, 0)
+        self.assertIn("version drift", out + err)
+
     def test_check_passes_within_tolerance_enforced(self):
         run = self.write("run.txt", "\n".join([CALIB_LINE, EXEC_LINE]))
         baseline = self.write("baseline.json", json.dumps(

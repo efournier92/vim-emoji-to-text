@@ -5,13 +5,11 @@
   },
   "metrics": {
     "exec:nvim:ascii:200:ratio": 0.04559585492227979,
-    "exec:nvim:empty:1:ratio": 0.0010362694300518134,
     "exec:nvim:heavy:1000:ratio": 5.874352331606218,
     "exec:nvim:heavy:200:ratio": 1.1797279792746114,
     "exec:nvim:light:200:ratio": 0.9669041450777203,
     "exec:nvim:mixed:200:ratio": 0.10880829015544041,
     "exec:vim:ascii:200:ratio": 0.048696371913367356,
-    "exec:vim:empty:1:ratio": 0.0011036004966202236,
     "exec:vim:heavy:1000:ratio": 7.75555248999862,
     "exec:vim:heavy:200:ratio": 1.56343403687865,
     "exec:vim:light:200:ratio": 1.0281877960178416,
