@@ -1,21 +1,21 @@
 {
   "editor_versions": {
     "nvim": "NVIM v0.12.5",
-    "vim": "VIM - Vi IMproved 9.2 (2026 Feb 14, compiled Oct  8 2026 19:38:07)"
+    "vim": "VIM - Vi IMproved 9.1 (2024 Jan 02, compiled Aug 24 2026 22:13:04)"
   },
   "metrics": {
-    "exec:nvim:ascii:200:ratio": 0.04559585492227979,
-    "exec:nvim:heavy:1000:ratio": 5.874352331606218,
-    "exec:nvim:heavy:200:ratio": 1.1797279792746114,
-    "exec:nvim:light:200:ratio": 0.9669041450777203,
-    "exec:nvim:mixed:200:ratio": 0.10880829015544041,
-    "exec:vim:ascii:200:ratio": 0.048696371913367356,
-    "exec:vim:heavy:1000:ratio": 7.75555248999862,
-    "exec:vim:heavy:200:ratio": 1.56343403687865,
-    "exec:vim:light:200:ratio": 1.0281877960178416,
-    "exec:vim:mixed:200:ratio": 0.1275578240676875,
-    "load:nvim:source_ratio": 0.07772020725388601,
-    "load:vim:source_ratio": 0.07297558283901227
+    "exec:nvim:ascii:200:ratio": 0.04227654640155116,
+    "exec:nvim:heavy:1000:ratio": 5.524883093183287,
+    "exec:nvim:heavy:200:ratio": 1.12344599475345,
+    "exec:nvim:light:200:ratio": 0.9309964642816408,
+    "exec:nvim:mixed:200:ratio": 0.10242177698361403,
+    "exec:vim:ascii:200:ratio": 0.043204320432043204,
+    "exec:vim:heavy:1000:ratio": 6.857439590112857,
+    "exec:vim:heavy:200:ratio": 1.3861847723233862,
+    "exec:vim:light:200:ratio": 0.8972512635878973,
+    "exec:vim:mixed:200:ratio": 0.11357289575111358,
+    "load:nvim:source_ratio": 0.0807892635821009,
+    "load:vim:source_ratio": 0.05682106672205683
   },
   "recorded_on": "ubuntu24",
   "tolerance": 0.5
