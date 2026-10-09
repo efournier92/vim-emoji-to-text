@@ -33,3 +33,4 @@ Nothing yet.
 - Fixed `NOTICE` pin drift by regenerating it during every dataset refresh.
 - The noisy `load:*:delta_ms` gate was replaced by a measured `source_data_ms` ratio, and missing benchmark metrics now fail instead of passing silently.
 - The empty-buffer benchmark metric is no longer gated, and the gate now warns when recorded editor versions drift.
+- The load-time source ratio is no longer gated (recorded only), because it tracks the editor build's loading speed and would make the gate follow the Vim release.

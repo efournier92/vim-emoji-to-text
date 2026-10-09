@@ -13,8 +13,8 @@ This addendum amends `docs/specs/2026-10-08_ProductionReadiness.md`, specificall
 
 - The gate now compares same-run ratios, so it is host-independent.
 - The key `exec:<editor>:<payload>:<lines>:ratio` is the payload time divided by the calibration time from the same run.
-- The key `load:<editor>:source_ratio` is `source_data_ms` divided by the calibration time from the same run.
-- `load:*:delta_ms` is still recorded but is no longer gated.
+- Only the `exec:<editor>:<payload>:<lines>:ratio` keys are gated.
+- `load:*:source_data_ms` and `load:*:delta_ms` are recorded but not gated, because they track the editor build's loading speed rather than the code.
 - The `exec:<editor>:empty:1` metric is recorded but not gated, because it is sub-microsecond scheduling noise.
 - An editor-version difference from the baseline emits a warning, not a failure, so a version bump without a re-record is visible.
 - A missing gated metric is now a failure instead of a warning.
