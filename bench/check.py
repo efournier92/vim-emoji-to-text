@@ -18,8 +18,7 @@ DEFAULT_TOLERANCE = 0.5
 CALIB_PAYLOAD = "calib"
 EMPTY_PAYLOAD = "empty"
 EXEC_METRIC = re.compile(r"^exec:([^:]+):([^:]+):([^:]+):per_run_ms$")
-LOAD_SOURCE = re.compile(r"^load:([^:]+):source_data_ms$")
-GATED = re.compile(r"^(?:exec:[^:]+:[^:]+:[^:]+:ratio|load:[^:]+:source_ratio)$")
+GATED = re.compile(r"^exec:[^:]+:[^:]+:[^:]+:ratio$")
 VIM_VERSION = re.compile(r"Vi IMproved (\d+\.\d+)")
 NVIM_VERSION = re.compile(r"NVIM v(\d+\.\d+\.\d+)")
 
@@ -74,37 +73,31 @@ def calibration(metrics):
 
 
 def editors_needing_calibration(metrics):
-    """Editors that emitted a payload or source metric, and thus need a calib."""
+    """Editors that emitted a gated payload, and thus need a calib."""
     editors = set()
     for key in metrics:
         match = EXEC_METRIC.match(key)
-        if match:
-            if match.group(2) not in (CALIB_PAYLOAD, EMPTY_PAYLOAD):
-                editors.add(match.group(1))
-            continue
-        match = LOAD_SOURCE.match(key)
-        if match:
+        if match and match.group(2) not in (CALIB_PAYLOAD, EMPTY_PAYLOAD):
             editors.add(match.group(1))
     return editors
 
 
 def derive(metrics):
-    """Return the gated ratios: payload/calib and source_data/calib per editor."""
+    """Return the gated ratios: conversion payload time divided by calibration time.
+
+    source_data_ms and delta_ms are recorded but not gated: they track the editor
+    build's loading speed, not the code, so gating them would follow the Vim release.
+    """
     calibs = calibration(metrics)
     ratios = {}
     for key, value in metrics.items():
         match = EXEC_METRIC.match(key)
-        if match:
-            editor, payload, lines = match.groups()
-            # Minimalist: empty-buffer exec is ~1us and guards no conversion, so its ratio is pure scheduling noise.
-            if payload not in (CALIB_PAYLOAD, EMPTY_PAYLOAD) and editor in calibs:
-                ratios["exec:%s:%s:%s:ratio" % (editor, payload, lines)] = value / calibs[editor]
+        if not match:
             continue
-        match = LOAD_SOURCE.match(key)
-        if match:
-            editor = match.group(1)
-            if editor in calibs:
-                ratios["load:%s:source_ratio" % editor] = value / calibs[editor]
+        editor, payload, lines = match.groups()
+        # Minimalist: empty-buffer exec is ~1us and guards no conversion, so its ratio is pure scheduling noise.
+        if payload not in (CALIB_PAYLOAD, EMPTY_PAYLOAD) and editor in calibs:
+            ratios["exec:%s:%s:%s:ratio" % (editor, payload, lines)] = value / calibs[editor]
     return ratios
 
 

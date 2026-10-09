@@ -13,9 +13,7 @@
     "exec:vim:heavy:1000:ratio": 6.857439590112857,
     "exec:vim:heavy:200:ratio": 1.3861847723233862,
     "exec:vim:light:200:ratio": 0.8972512635878973,
-    "exec:vim:mixed:200:ratio": 0.11357289575111358,
-    "load:nvim:source_ratio": 0.0807892635821009,
-    "load:vim:source_ratio": 0.05682106672205683
+    "exec:vim:mixed:200:ratio": 0.11357289575111358
   },
   "recorded_on": "ubuntu24",
   "tolerance": 0.5

@@ -53,13 +53,13 @@ class BenchTest(unittest.TestCase):
         self.assertEqual(metrics["exec:vim:heavy:1000:per_run_ms"], 300.0)
         self.assertEqual(metrics["load:vim:source_data_ms"], 50.0)
 
-    def test_derive_builds_exec_and_source_ratios(self):
+    def test_derive_builds_exec_ratio_and_leaves_load_ungated(self):
         metrics = bench.parse_lines("\n".join([CALIB_LINE, EXEC_LINE, SOURCE_LINE]))
         ratios = bench.derive(metrics)
         self.assertEqual(ratios["exec:vim:heavy:1000:ratio"], 30.0)
-        self.assertEqual(ratios["load:vim:source_ratio"], 5.0)
+        self.assertNotIn("load:vim:source_ratio", ratios)
         self.assertTrue(bench.is_gated("exec:vim:heavy:1000:ratio"))
-        self.assertTrue(bench.is_gated("load:vim:source_ratio"))
+        self.assertFalse(bench.is_gated("load:vim:source_ratio"))
         self.assertFalse(bench.is_gated("load:vim:delta_ms"))
 
     def test_derive_skips_empty_payload_ratio(self):
@@ -149,7 +149,7 @@ class BenchTest(unittest.TestCase):
         self.assertEqual(set(data), {"recorded_on", "editor_versions", "tolerance", "metrics"})
         self.assertEqual(data["tolerance"], 0.5)
         self.assertEqual(data["metrics"]["exec:vim:heavy:1000:ratio"], 30.0)
-        self.assertEqual(data["metrics"]["load:vim:source_ratio"], 5.0)
+        self.assertNotIn("load:vim:source_ratio", data["metrics"])
         self.assertTrue(all(k.endswith("ratio") for k in data["metrics"]))
 
     def test_bench_tolerance_env_overrides_default(self):
