@@ -58,7 +58,8 @@
 
 - Run `:EmojiToText` to convert the whole buffer, or give it a range such as `:2,5EmojiToText` or a visual `:'<,'>EmojiToText` to convert only those lines.
 - The plugin ships no default mapping, so bind your own.
-  - `nnoremap <leader>et :EmojiToText<CR>`
+  - `nnoremap <leader>et :EmojiToText<CR>` for Normal mode.
+  - `xnoremap <leader>et :EmojiToText<CR>` for a visual selection.
 
 ## What It Converts
 
