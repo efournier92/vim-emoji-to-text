@@ -1,4 +1,4 @@
-" EmojiToText conversion engine: whole-buffer emoji to :shortcode:.
+" EmojiToText conversion engine: emoji to :shortcode: over an optional range.
 scriptencoding utf-8
 
 let s:map = {}
@@ -56,6 +56,9 @@ function! s:convert_line(line) abort
       if l:last < l:i
         call add(l:parts, join(l:toks[l:last : l:i-1], ''))
       endif
+      " No separator between consecutive emoji: Slack parses :a::b: as two
+      " shortcodes (a close colon plus an open colon), and a space would
+      " inject bytes the buffer never held.
       call add(l:parts, ':' . l:best . ':')
       let l:i = l:bestend
       let l:last = l:i
@@ -70,7 +73,7 @@ function! s:convert_line(line) abort
   return join(l:parts, '')
 endfunction
 
-function! emoji_to_text#convert() abort
+function! emoji_to_text#convert(...) abort
   " The emoji map is UTF-8; decline clearly instead of failing on load.
   if tolower(&encoding) !=# 'utf-8'
     echomsg 'EmojiToText: requires encoding=utf-8; buffer left unchanged'
@@ -84,8 +87,13 @@ function! emoji_to_text#convert() abort
     let s:map = emoji_to_text#data#map()
     call s:build_trie()
   endif
+  let l:start = a:0 >= 1 ? a:1 : 1
+  let l:end = a:0 >= 2 ? a:2 : line('$')
+  " Clamp into the buffer; an empty buffer is the single empty line 1.
+  let l:start = max([1, min([l:start, line('$')])])
+  let l:end = max([1, min([l:end, line('$')])])
   let l:pos = getcurpos()
-  let l:lines = getline(1, '$')
+  let l:lines = getline(l:start, l:end)
   let l:changed = 0
   let l:i = 0
   let l:n = len(l:lines)
@@ -102,7 +110,8 @@ function! emoji_to_text#convert() abort
     let l:i += 1
   endwhile
   if l:changed
-    call setline(1, l:lines)
+    " One setline over the slice keeps the range write a single undo step.
+    call setline(l:start, l:lines)
   endif
   call setpos('.', l:pos)
 endfunction

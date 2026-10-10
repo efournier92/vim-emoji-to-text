@@ -278,3 +278,68 @@ function! s:suite.case_28_modifiable_control() abort
   EmojiToText
   call s:assert.equals(getline(1), ':grinning:')
 endfunction
+
+" 29. Range regression guard: no range still converts the whole buffer.
+function! s:suite.case_29_no_range_whole_buffer() abort
+  call s:set_lines(['😀', '👋', 'plain'])
+  EmojiToText
+  call s:assert.equals(getline(1), ':grinning:')
+  call s:assert.equals(getline(2), ':wave:')
+  call s:assert.equals(getline(3), 'plain')
+endfunction
+
+" 30. An explicit range converts only the selected lines; every other
+" line is byte-identical.
+function! s:suite.case_30_range_only_selected() abort
+  call s:set_lines(['😀 keep', '👋 convert', '🇺🇸 convert', 'plain keep'])
+  execute '2,3EmojiToText'
+  call s:assert.equals(getline(1), '😀 keep')
+  call s:assert.equals(getline(2), ':wave: convert')
+  call s:assert.equals(getline(3), ':flag-us: convert')
+  call s:assert.equals(getline(4), 'plain keep')
+endfunction
+
+" 31. A range whose lines hold no emoji is a no-op: no error, unchanged.
+function! s:suite.case_31_range_noop() abort
+  call s:set_lines(['😀', 'plain a', 'plain b', '👋'])
+  execute '2,3EmojiToText'
+  call s:assert.equals(getline(1), '😀')
+  call s:assert.equals(getline(2), 'plain a')
+  call s:assert.equals(getline(3), 'plain b')
+  call s:assert.equals(getline(4), '👋')
+endfunction
+
+" 32. A ranged write is one undo step restoring the exact multi-line
+" original, mirroring case_26 for the whole buffer.
+function! s:suite.case_32_range_undo_single_step() abort
+  let l:original = ['😀 first', '👋 convert me', 'plain ascii', '🇺🇸 convert too']
+  let l:file = tempname()
+  call writefile(l:original, l:file)
+  execute 'silent edit!' fnameescape(l:file)
+  execute '2,4EmojiToText'
+  call s:assert.equals(getline(2), ':wave: convert me')
+  call s:assert.equals(getline(4), ':flag-us: convert too')
+  silent undo
+  call s:assert.equals(getline(1, '$'), l:original)
+  call delete(l:file)
+endfunction
+
+" 33. Direct API seam: emoji_to_text#convert(start, end) converts only the
+" given line range.
+function! s:suite.case_33_api_range() abort
+  call s:set_lines(['😀 zero', '👋 one', '🇺🇸 two'])
+  call emoji_to_text#convert(2, 3)
+  call s:assert.equals(getline(1), '😀 zero')
+  call s:assert.equals(getline(2), ':wave: one')
+  call s:assert.equals(getline(3), ':flag-us: two')
+endfunction
+
+" 34. Cursor position survives a ranged conversion.
+function! s:suite.case_34_range_cursor_preserved() abort
+  call s:set_lines(['😀 line one', '👋 line two', 'plain three', '🇺🇸 line four'])
+  call cursor(4, 3)
+  let l:pos = getcurpos()
+  execute '2,3EmojiToText'
+  call s:assert.equals(getcurpos(), l:pos)
+  call s:assert.equals(getline(2), ':wave: line two')
+endfunction

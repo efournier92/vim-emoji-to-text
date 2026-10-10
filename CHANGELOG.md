@@ -6,6 +6,16 @@ All changes to this project are documented in this file. Releases use `YYYY-MM-D
 
 Nothing yet.
 
+## [2026-10-10]
+
+### Added
+
+- Added range support to `:EmojiToText`: no range converts the whole buffer, and a range such as `:2,5EmojiToText` or a visual selection converts only those lines.
+
+### Changed
+
+- Raised the documented Vim floor to 9.1 and the Neovim floor to v0.12.5, the versions CI actually installs.
+
 ## [2026-10-08]
 
 ### Added

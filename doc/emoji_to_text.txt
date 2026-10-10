@@ -17,21 +17,25 @@ colon-wrapped lowercase shortcodes, for example `:grinning:`. The output
 matches Slack's shortcode style, so a converted buffer can be pasted into
 Slack unchanged.
 
-The plugin is pure Vimscript and works in Vim 8.0+ and Neovim with no
-runtime dependencies. The emoji map is generated from a pinned revision of
-`iamcal/emoji-data` and committed to the repository, so installing the
+The plugin is pure Vimscript and works in Vim 9.1+ and Neovim 0.12.5+, with
+no runtime dependencies. The emoji map is generated from a pinned revision
+of `iamcal/emoji-data` and committed to the repository, so installing the
 plugin needs no network or build step.
 
 ==============================================================================
 2. COMMANDS                                           *emoji-to-text-commands*
 
                                                         *:EmojiToText*
-:EmojiToText            Convert the emoji in the whole current buffer to
-                        shortcodes. The conversion is a single undo step.
-                        The command prints no message on success.
+:EmojiToText            Convert the emoji in the current buffer to
+                        shortcodes. With no range the whole buffer is
+                        converted; with a range such as :2,5EmojiToText, or a
+                        visual selection, only those lines are converted. The
+                        conversion is a single undo step. The command prints
+                        no message on success.
 
-                        The command ignores any range and always acts on the
-                        whole buffer.
+                        Consecutive emoji become consecutive shortcodes with
+                        no separator (for example :grin::grin:), which Slack
+                        renders as separate emoji.
 
 ==============================================================================
 3. MAPPINGS                                           *emoji-to-text-mappings*
@@ -51,7 +55,6 @@ The plugin ships no default mapping. Assign your own, for example: >
 - Unrecognized emoji are left byte-identical.
 - Conversion is always explicit; nothing runs on paste, insert, or write.
 - There is no reverse conversion from shortcode back to emoji.
-- The whole buffer is converted; there is no visual-range mode.
 - A buffer with `'nomodifiable'` set is left unchanged; the command prints
   a message instead of raising an error.
 
