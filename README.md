@@ -56,10 +56,27 @@
 
 ## Usage
 
+### Command
+
 - Run `:EmojiToText` to convert the whole buffer, or give it a range such as `:2,5EmojiToText` or a visual `:'<,'>EmojiToText` to convert only those lines.
+
+### Binding
+
+#### Purpose
+
 - The plugin ships no default mapping, so bind your own.
-  - `nnoremap <leader>et :EmojiToText<CR>` for Normal mode.
-  - `xnoremap <leader>et :EmojiToText<CR>` for a visual selection.
+
+#### Normal Mode | *Apply To Whole Buffer*
+
+```text
+nnoremap <leader>emo :EmojiToText<CR>
+```
+
+#### Visual-Selection Mode | *Apply To Specific Block*
+
+```text
+xnoremap <leader>emo :EmojiToText<CR>
+```
 
 ## What It Converts
 
@@ -82,9 +99,15 @@
 
 ## Pinned Dataset
 
+### Purpose
+
 - The map is generated from a pinned `iamcal/emoji-data` revision.
 
-Pinned dataset: iamcal/emoji-data v16.0.0 (2771d0b1b3af25c069086e68e38f901c3dda8bdf)
+### Latest Pinned Dataset
+
+```text
+iamcal/emoji-data v16.0.0 (2771d0b1b3af25c069086e68e38f901c3dda8bdf)
+```
 
 ## Help
 
