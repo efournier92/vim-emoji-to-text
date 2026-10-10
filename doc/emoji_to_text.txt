@@ -43,6 +43,10 @@ plugin needs no network or build step.
 The plugin ships no default mapping. Assign your own, for example: >
 
     nnoremap <leader>et :EmojiToText<CR>
+    xnoremap <leader>et :EmojiToText<CR>
+
+The `xnoremap` binding uses the visual range, so the command converts only the
+lines in the selection.
 
 ==============================================================================
 4. LIMITS                                               *emoji-to-text-limits*

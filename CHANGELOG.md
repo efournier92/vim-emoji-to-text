@@ -16,6 +16,7 @@ Nothing yet.
 
 - Raised the documented Vim floor to 9.1 and the Neovim floor to v0.12.5, the versions CI actually installs.
 - Pinned the CI runners to `ubuntu-24.04` so the documented Vim 9.1 floor stays tested.
+- Documented the `xnoremap` mapping for visual selections in `README.md` and `doc/emoji_to_text.txt`.
 
 ## [2026-10-08]
 
