@@ -4,7 +4,7 @@
 Queries upstream tags, selects the highest semver tag, rewrites the pin
 constants in tools/generate_map.py, downloads and hashes that revision,
 regenerates autoload/emoji_to_text/data.vim in place, and updates the
-README revision line and NOTICE. Every file is computed in memory before
+README pinned-dataset line and NOTICE. Every file is computed in memory before
 any write, and each write goes through a temp file plus os.replace, so a
 failure before the write phase leaves the tree untouched. --dry-run only
 prints the selected tag.
@@ -27,7 +27,7 @@ REPO_ROOT = TOOLS_DIR.parent
 TAGS_API = "https://api.github.com/repos/iamcal/emoji-data/tags?per_page=100"
 RAW_URL = "https://raw.githubusercontent.com/iamcal/emoji-data/%s/emoji.json"
 SEMVER = re.compile(r"^v?(\d+)\.(\d+)\.(\d+)$")
-README_LINE = re.compile(r"^Pinned dataset: .*$", re.MULTILINE)
+README_LINE = re.compile(r"^iamcal/emoji-data .*$", re.MULTILINE)
 NOTICE_PIN = re.compile(r"^    Pinned revision: .*$", re.MULTILINE)
 NOTICE_ANCHOR = re.compile(
     r"^(?:    https://github\.com/iamcal/emoji-data|Emoji Sources)\s*$",
@@ -96,10 +96,11 @@ def render_notice(source_text, tag, commit):
 
 def render_readme(source_text, tag, commit):
     """Return README text with the pinned dataset line updated or added."""
-    line = "Pinned dataset: iamcal/emoji-data %s (%s)" % (tag, commit)
+    line = "iamcal/emoji-data %s (%s)" % (tag, commit)
     if README_LINE.search(source_text):
         return README_LINE.sub(line, source_text, count=1)
-    return source_text.rstrip() + "\n\n" + line + "\n"
+    block = "### Latest Pinned Dataset\n\n```text\n%s\n```" % line
+    return source_text.rstrip() + "\n\n" + block + "\n"
 
 
 def write_atomic(path, text):

@@ -63,7 +63,11 @@ NOTICE_NO_PIN = (
 README_SOURCE = (
     "Title\n"
     "\n"
-    "Pinned dataset: iamcal/emoji-data v1.0.0 (oldcommit)\n"
+    "### Latest Pinned Dataset\n"
+    "\n"
+    "```text\n"
+    "iamcal/emoji-data v1.0.0 (oldcommit)\n"
+    "```\n"
     "\n"
     "More text.\n"
 )
@@ -112,16 +116,18 @@ class RefreshTest(unittest.TestCase):
 
     def test_render_readme_replaces_existing(self):
         out = refresh.render_readme(README_SOURCE, "v2.0.0", "newcommit")
-        self.assertIn(
-            "Pinned dataset: iamcal/emoji-data v2.0.0 (newcommit)", out
-        )
+        self.assertIn("iamcal/emoji-data v2.0.0 (newcommit)", out)
+        self.assertNotIn("v1.0.0", out)
         self.assertIn("More text.", out)
+        self.assertIn("### Latest Pinned Dataset", out)
+        self.assertEqual(out.count("```text"), 1)
+        self.assertEqual(out.count("```"), 2)
 
     def test_render_readme_appends_when_absent(self):
         out = refresh.render_readme(README_NO_PIN, "v2.0.0", "newcommit")
-        self.assertIn(
-            "Pinned dataset: iamcal/emoji-data v2.0.0 (newcommit)", out
-        )
+        self.assertIn("### Latest Pinned Dataset", out)
+        self.assertIn("```text", out)
+        self.assertIn("iamcal/emoji-data v2.0.0 (newcommit)", out)
         self.assertIn("More text.", out)
 
     def _temp_repo(self, tmp):
@@ -171,9 +177,7 @@ class RefreshTest(unittest.TestCase):
             self.assertIn('" SOURCE_COMMIT: deadbeef', dataset)
 
             readme = (root / "README.md").read_text()
-            self.assertIn(
-                "Pinned dataset: iamcal/emoji-data v99.0.0 (deadbeef)", readme
-            )
+            self.assertIn("iamcal/emoji-data v99.0.0 (deadbeef)", readme)
             notice = (root / "NOTICE").read_text()
             self.assertIn("    Pinned revision: v99.0.0 (deadbeef)", notice)
 
